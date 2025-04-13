@@ -1,171 +1,117 @@
+import logging
+import os
 import datetime
-import json
 
-# import os
 import pandas as pd
-import requests
-
-# ABS_PATH = os.path.abspath(os.path.join(os.getcwd(), ".."))
-API_KEY = "2ba1e8f7be014ddabf64ab8d358d8fae"
 
 
-def time_greetings():
-    """Функция для отладки приветствия по реальному времени"""
+ABS_PATH = os.path.abspath(os.path.join(os.getcwd(), ".."))
+
+all_transactions_df = pd.read_excel(os.path.join(ABS_PATH, 'data', 'operations.xlsx'))
+
+# logger = logging.getLogger("views.log")
+# file_handler = logging.FileHandler("views.log", "w")
+# file_formatter = logging.Formatter("%(asctime)s %(levelname)s: %(message)s")
+# file_handler.setFormatter(file_formatter)
+# logger.addHandler(file_handler)
+# logger.setLevel(logging.INFO)
+#
+# logger.info("Конец работы функции (filter_by_date)")
+# logger.info("Начало работы функции (filter_by_date)")
+
+
+def get_main_page(df, date_time_str):
     try:
-        time_now = datetime.datetime.now()
-        time_string = time_now.hour
-        if 6 <= time_string < 12:
+        date_time_obj = datetime.datetime.strptime(date_time_str, "%Y-%m-%d %H:%M:%S")
+        hour = date_time_obj.hour
+
+        if 6 <= hour < 12:
             greeting = "Доброе утро"
-        elif 12 <= time_string < 18:
+        elif 12 <= hour < 18:
             greeting = "Добрый день"
-        elif 18 <= time_string < 22:
+        elif 18 <= hour < 23:
             greeting = "Добрый вечер"
         else:
             greeting = "Доброй ночи"
+        required_columns = ["Дата операции", "Номер карты", "Сумма операции", "Категория", "Описание"]
+        missing_columns = [col for col in required_columns if col not in df.columns]
 
-        return greeting
-    except Exception as e:
-        return f"Error {e}"
+        if missing_columns:
+            return {"error": f"Отсутствуют необходимые столбцы в DataFrame: {', '.join(missing_columns)}"}
 
+        cards = []
+        for card_number in df['Номер карты'].unique():
+            card_transactions = df[df['Номер карты'] == card_number]
+            expenses = card_transactions[card_transactions['Сумма операции'].astype(str).str.startswith('-')]['Сумма операции']
+            try:
+                expenses = pd.to_numeric(expenses, errors='coerce')
+                expenses = expenses.dropna()
+                total_spent = abs(expenses.sum())
 
-# print(time_greetings())
+            except ValueError as e:
+                return {"error": f"Ошибка при преобразовании 'Сумма операции' в число: {str(e)}"}
 
+            last_digits = str(card_number)[-4:]
+            cashback = round(total_spent * 0.01, 2)
 
-def open_excel_file_func(file_name_excel):
-    """Функция для открытия excel файла"""
-    try:
-        excel_open = pd.read_excel(file_name_excel).fillna(0)
-        excel_to_dict = excel_open.to_dict(orient="records")
-        return excel_to_dict
-    except Exception as e:
-        return f"Error {e}"
-
-
-# open_excel = open_excel_file_func(os.path.join(ABS_PATH, 'data', 'operations.xlsx'))
-# print(open_excel)
-
-
-def read_exc_file_cards(file_name_excel):
-    """Функция для сортировки данных по картам"""
-    list_all_info = []
-    list_cashback = []
-    list_card_number = []
-    total_spent_list = []
-    try:
-        for i in file_name_excel:
-            if str(i["Номер карты"]).startswith("*"):
-                str_reload = str(i["Номер карты"])[1:]
-                if str_reload in list_card_number:
-                    continue
-
-                else:
-                    list_card_number.append(str_reload)
-        for j in list_card_number:
-            total_spent = 0
-            j = "*" + j
-            for k in file_name_excel:
-                if k["Номер карты"] == j:
-                    str_total_spent = f"{k['Сумма платежа']:.2f}"
-                    if str_total_spent.startswith("-"):
-                        str_total_spent = str_total_spent[1:]
-                        total_spent += float(str_total_spent)
-                else:
-                    continue
-            total_spent = float(f"{total_spent:.2f}")
-            total_spent_list.append(total_spent)
-
-        for l in total_spent_list:
-            cash_back = l / 100
-            cash_back = float(f"{cash_back:.2f}")
-            list_cashback.append(cash_back)
-
-        for p in range(len(list_card_number)):
-            _dict = {
-                "last_digits": list_card_number[p],
-                "total_spent": total_spent_list[p],
-                "cashback": list_cashback[p],
+            card_info = {
+                "last_digits": last_digits,
+                "total_spent": float(round(total_spent, 2)),
+                "cashback": float(cashback)
             }
-            list_all_info.append(_dict)
-        return list_all_info
+            cards.append(card_info)
+        expenses_top = df['Сумма операции'].astype(str).str.startswith('-')
+        top_transactions = df[expenses_top].sort_values(by='Сумма операции', ascending=True).head(5)
+        top_transactions = top_transactions.rename(columns={
+            'Дата операции': 'date',
+            'Сумма операции': 'amount',
+            'Категория': 'category',
+            'Описание': 'description'
+        })
+        try:
+            top_transactions['amount'] = pd.to_numeric(top_transactions['amount'], errors='coerce')
+            top_transactions = top_transactions.dropna(subset=['amount'])
+            top_transactions['amount'] = abs(top_transactions['amount']).round(2)
 
-    except Exception as e:
-        return f"Error {e}"
+        except ValueError as e:
+            return {"error": f"Ошибка при преобразовании 'Сумма операции' в число для топ транзакций: {str(e)}"}
 
+        top_transactions['date'] = top_transactions['date'].astype(str)
 
-# cards = read_exc_file_cards(open_excel)
-# print(cards)
+        top_transactions = top_transactions[['date', 'amount', 'category', 'description']].to_dict('records')
 
-
-def open_json_user_settings(filepath):
-    """Развертка json файла с пользовательскими данными"""
-    try:
-        with open(filepath, "r", encoding="utf-8") as f:
-            data = json.load(f)
-            return data
-
-    except Exception as e:
-        return f"Error {e}"
-
-
-# print(open_json_user_settings(os.path.join(ABS_PATH, 'data', 'user_settings.json')))
-# test_dict = os.path.join(ABS_PATH, 'data', 'user_settings.json')
-
-
-def api_sp_500(setting_dict):
-    """Запрос на стоимость акций"""
-    json_result = []
-    try:
-        for i in setting_dict["user_stocks"]:
-            dict_result = {}
-            url_sp = f"https://api.twelvedata.com/price?symbol={i}&apikey={API_KEY}"
-            req_1 = requests.get(url_sp)
-            data = req_1.json()
-            dict_result["stock"], dict_result["price"] = i, data["price"]
-            json_result.append(dict_result)
-
-        return json_result
-    except Exception as e:
-        return f"Error {e}"
-
-
-# print(api_sp_500(open_json_user_settings(test_dict)))
-
-
-def valet_rub(setting_dict):
-    """Запрос конвертации валюты в рубли"""
-    json_result = []
-    try:
-        for i in setting_dict["user_currencies"]:
-            dict_result = {}
-            url_sp = f"https://api.twelvedata.com/exchange_rate?symbol={i}/RUB&apikey={API_KEY}"
-            req_1 = requests.get(url_sp)
-            data = req_1.json()
-            dict_result["currency"], dict_result["rate"] = i, data["rate"]
-            json_result.append(dict_result)
-        return json_result
-    except Exception as e:
-        return f"Error {e}"
-
-
-# print(valet_rub(open_json_user_settings(os.path.join(ABS_PATH, 'data', 'user_settings.json'))))
-
-
-def get_top_five_transactions(transactions):
-    try:
-        valid_transactions = [
-            transaction
-            for transaction in transactions
-            if isinstance(transaction, dict)
-            and transaction.get("Сумма платежа") is not None
-            and isinstance(transaction.get("Сумма платежа"), (int, float))
-            and not pd.isna(transaction.get("Сумма платежа"))
+        currency_rates = [
+            {"currency": "USD", "rate": 73.21},
+            {"currency": "EUR", "rate": 87.08}
         ]
-        sorted_transactions = sorted(valid_transactions, key=lambda x: abs(x["Сумма платежа"]), reverse=True)
-        return sorted_transactions[:5]
+
+        stock_prices = [
+            {"stock": "AAPL", "price": 150.12},
+            {"stock": "AMZN", "price": 3173.18},
+            {"stock": "GOOGL", "price": 2742.39},
+            {"stock": "MSFT", "price": 296.71},
+            {"stock": "TSLA", "price": 1007.08}
+        ]
+
+        result = {
+            "greeting": greeting,
+            "cards": cards,
+            "top_transactions": top_transactions,
+            "currency_rates": currency_rates,
+            "stock_prices": stock_prices
+        }
+
+        return result
 
     except Exception as e:
-        print(f"Ошибка при обработке транзакций: {e}")
-        return []
+        return {"error": f"Произошла непредвиденная ошибка: {str(e)}"}
 
 
 
+page_result = get_main_page(all_transactions_df, "2021-12-11 05:02:35")
+print(page_result)
+# for i in all_transactions_df:
+#     if count > 10:
+#         break
+#     else:
+#         print(i)

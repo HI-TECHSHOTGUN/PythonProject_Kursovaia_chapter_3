@@ -4,7 +4,7 @@ import requests
 
 from src.reports import spending_by_weekday
 from src.services import search_transaction
-from src.views import open_excel_file_func, read_exc_file_cards, api_sp_500, valet_rub, get_top_five_transactions
+from src.utils import read_exc_file_cards, api_sp_500, valet_rub, get_top_five_transactions, open_excel_file_func
 
 API_KEY = "TEST_API_KEY"
 
