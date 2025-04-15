@@ -4,10 +4,11 @@ import datetime
 
 import pandas as pd
 
+from src.utils import time_greetings, open_json_user_settings, valet_rub, api_sp_500, sorted_pd_df
 
 ABS_PATH = os.path.abspath(os.path.join(os.getcwd(), ".."))
-
-all_transactions_df = pd.read_excel(os.path.join(ABS_PATH, 'data', 'operations.xlsx'))
+#
+# all_transactions_df = pd.read_excel(os.path.join(ABS_PATH, 'data', 'operations.xlsx'))
 
 # logger = logging.getLogger("views.log")
 # file_handler = logging.FileHandler("views.log", "w")
@@ -20,19 +21,10 @@ all_transactions_df = pd.read_excel(os.path.join(ABS_PATH, 'data', 'operations.x
 # logger.info("Начало работы функции (filter_by_date)")
 
 
-def get_main_page(df, date_time_str):
+def get_main_page(df_not_sorted: pd.DataFrame, date_time_str):
     try:
-        date_time_obj = datetime.datetime.strptime(date_time_str, "%Y-%m-%d %H:%M:%S")
-        hour = date_time_obj.hour
-
-        if 6 <= hour < 12:
-            greeting = "Доброе утро"
-        elif 12 <= hour < 18:
-            greeting = "Добрый день"
-        elif 18 <= hour < 23:
-            greeting = "Добрый вечер"
-        else:
-            greeting = "Доброй ночи"
+        df = sorted_pd_df(df_not_sorted, date_time_str)
+        greeting = time_greetings()
         required_columns = ["Дата операции", "Номер карты", "Сумма операции", "Категория", "Описание"]
         missing_columns = [col for col in required_columns if col not in df.columns]
 
@@ -80,18 +72,10 @@ def get_main_page(df, date_time_str):
 
         top_transactions = top_transactions[['date', 'amount', 'category', 'description']].to_dict('records')
 
-        currency_rates = [
-            {"currency": "USD", "rate": 73.21},
-            {"currency": "EUR", "rate": 87.08}
-        ]
+        settings_dict = open_json_user_settings(os.path.join(ABS_PATH, 'data', 'user_settings.json'))
+        currency_rates = valet_rub(settings_dict)
 
-        stock_prices = [
-            {"stock": "AAPL", "price": 150.12},
-            {"stock": "AMZN", "price": 3173.18},
-            {"stock": "GOOGL", "price": 2742.39},
-            {"stock": "MSFT", "price": 296.71},
-            {"stock": "TSLA", "price": 1007.08}
-        ]
+        stock_prices = api_sp_500(settings_dict)
 
         result = {
             "greeting": greeting,
@@ -108,10 +92,5 @@ def get_main_page(df, date_time_str):
 
 
 
-page_result = get_main_page(all_transactions_df, "2021-12-11 05:02:35")
-print(page_result)
-# for i in all_transactions_df:
-#     if count > 10:
-#         break
-#     else:
-#         print(i)
+# page_result = get_main_page(all_transactions_df, '31.12.2020 16:44:00')
+# print(ABS_PATH)

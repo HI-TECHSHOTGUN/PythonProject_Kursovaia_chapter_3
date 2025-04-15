@@ -1,11 +1,12 @@
 import datetime
 import json
 
-# import os
+import os
 import pandas as pd
 import requests
 
 # ABS_PATH = os.path.abspath(os.path.join(os.getcwd(), ".."))
+# all_transactions_df = pd.read_excel(os.path.join(ABS_PATH, 'data', 'operations.xlsx'))
 API_KEY = "2ba1e8f7be014ddabf64ab8d358d8fae"
 
 
@@ -130,24 +131,6 @@ def valet_rub(setting_dict):
 # print(valet_rub(open_json_user_settings(os.path.join(ABS_PATH, 'data', 'user_settings.json'))))
 
 
-def get_top_five_transactions(transactions):
-    try:
-        valid_transactions = [
-            transaction
-            for transaction in transactions
-            if isinstance(transaction, dict)
-            and transaction.get("Сумма платежа") is not None
-            and isinstance(transaction.get("Сумма платежа"), (int, float))
-            and not pd.isna(transaction.get("Сумма платежа"))
-        ]
-        sorted_transactions = sorted(valid_transactions, key=lambda x: abs(x["Сумма платежа"]), reverse=True)
-        return sorted_transactions[:5]
-
-    except Exception as e:
-        print(f"Ошибка при обработке транзакций: {e}")
-        return []
-
-
 def open_excel_file_func(file_name_excel):
     """Функция для открытия excel файла"""
     try:
@@ -160,3 +143,20 @@ def open_excel_file_func(file_name_excel):
 
 # open_excel = open_excel_file_func(os.path.join(ABS_PATH, 'data', 'operations.xlsx'))
 # print(open_excel)
+
+
+def sorted_pd_df(pd_df, analysis_date_str):
+    try:
+        date_format = '%d.%m.%Y %H:%M:%S'
+        analysis_date = pd.to_datetime(analysis_date_str, format=date_format)
+        start_date = analysis_date.replace(day=1, hour=0, minute=0, second=0)
+        pd_df['Дата операции'] = pd.to_datetime(pd_df['Дата операции'], format=date_format, errors='coerce')
+        filtered_df = pd_df[(pd_df['Дата операции'] >= start_date) & (pd_df['Дата операции'] <= analysis_date)]
+        filtered_df = filtered_df.sort_values(by='Дата операции', ascending=True)
+        return filtered_df
+
+    except Exception as e:
+        return f'Error {e}'
+
+
+# print(sorted_pd_df(all_transactions_df, '31.12.2020 16:44:00'))
