@@ -1,9 +1,10 @@
 import datetime
 
 import pandas as pd
+import os
+from utils import ABS_PATH
 
-# from src.views import open_excel
-
+all_transactions_df = pd.read_excel(os.path.join(ABS_PATH, 'data', 'operations.xlsx'))
 
 def spending_by_weekday(df, date):
     """Функция для поиска трат по дням недели, входные данные date=DD.MM.YYYY"""
@@ -26,10 +27,10 @@ def spending_by_weekday(df, date):
 
         average_spending = merged_df.groupby("День недели")["Сумма платежа"].mean()
         average_spending = average_spending.rename(index=days)
-        result = [{"День недели": day, "Сумма платежа": spending} for day, spending in average_spending.items()]
+        result = average_spending.to_frame()
         return result
     except Exception as e:
         return f"Error {e}"
 
 
-# print(spending_by_weekday(open_excel, '17.10.2020'))
+print(spending_by_weekday(all_transactions_df, '17.10.2020'))

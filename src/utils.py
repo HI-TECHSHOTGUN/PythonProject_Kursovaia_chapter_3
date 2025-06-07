@@ -5,59 +5,9 @@ import os
 import pandas as pd
 import requests
 
-# ABS_PATH = os.path.abspath(os.path.join(os.getcwd(), ".."))
-# all_transactions_df = pd.read_excel(os.path.join(ABS_PATH, 'data', 'operations.xlsx'))
+ABS_PATH = os.path.abspath(os.path.join(os.getcwd(), ".."))
+all_transactions_df = pd.read_excel(os.path.join(ABS_PATH, "data", "operations.xlsx"))
 API_KEY = "2ba1e8f7be014ddabf64ab8d358d8fae"
-
-
-# def read_exc_file_cards(file_name_excel):
-#     """Функция для сортировки данных по картам"""
-#     list_all_info = []
-#     list_cashback = []
-#     list_card_number = []
-#     total_spent_list = []
-#     try:
-#         for i in file_name_excel:
-#             if str(i["Номер карты"]).startswith("*"):
-#                 str_reload = str(i["Номер карты"])[1:]
-#                 if str_reload in list_card_number:
-#                     continue
-#
-#                 else:
-#                     list_card_number.append(str_reload)
-#         for j in list_card_number:
-#             total_spent = 0
-#             j = "*" + j
-#             for k in file_name_excel:
-#                 if k["Номер карты"] == j:
-#                     str_total_spent = f"{k['Сумма платежа']:.2f}"
-#                     if str_total_spent.startswith("-"):
-#                         str_total_spent = str_total_spent[1:]
-#                         total_spent += float(str_total_spent)
-#                 else:
-#                     continue
-#             total_spent = float(f"{total_spent:.2f}")
-#             total_spent_list.append(total_spent)
-#
-#         for l in total_spent_list:
-#             cash_back = l / 100
-#             cash_back = float(f"{cash_back:.2f}")
-#             list_cashback.append(cash_back)
-#
-#         for p in range(len(list_card_number)):
-#             _dict = {
-#                 "last_digits": list_card_number[p],
-#                 "total_spent": total_spent_list[p],
-#                 "cashback": list_cashback[p],
-#             }
-#             list_all_info.append(_dict)
-#         return list_all_info
-#
-#     except Exception as e:
-#         return f"Error {e}"
-#
-# cards = read_exc_file_cards(all_transactions_df)
-# print(all_transactions_df)
 
 
 def time_greetings():
@@ -89,6 +39,7 @@ def open_json_user_settings(filepath):
     except Exception as e:
         return f"Error {e}"
 
+
 # print(open_json_user_settings(os.path.join(ABS_PATH, 'data', 'user_settings.json')))
 # test_dict = os.path.join(ABS_PATH, 'data', 'user_settings.json')
 
@@ -108,6 +59,7 @@ def api_sp_500(setting_dict):
         return json_result
     except Exception as e:
         return f"Error {e}"
+
 
 # print(api_sp_500(open_json_user_settings(test_dict)))
 
@@ -147,16 +99,95 @@ def open_excel_file_func(file_name_excel):
 
 def sorted_pd_df(pd_df, analysis_date_str):
     try:
-        date_format = '%d.%m.%Y %H:%M:%S'
+        date_format = "%d.%m.%Y %H:%M:%S"
         analysis_date = pd.to_datetime(analysis_date_str, format=date_format)
         start_date = analysis_date.replace(day=1, hour=0, minute=0, second=0)
-        pd_df['Дата операции'] = pd.to_datetime(pd_df['Дата операции'], format=date_format, errors='coerce')
-        filtered_df = pd_df[(pd_df['Дата операции'] >= start_date) & (pd_df['Дата операции'] <= analysis_date)]
-        filtered_df = filtered_df.sort_values(by='Дата операции', ascending=True)
+        pd_df["Дата операции"] = pd.to_datetime(pd_df["Дата операции"], format=date_format, errors="coerce")
+        filtered_df = pd_df[(pd_df["Дата операции"] >= start_date) & (pd_df["Дата операции"] <= analysis_date)]
+        filtered_df = filtered_df.sort_values(by="Дата операции", ascending=True)
         return filtered_df
 
     except Exception as e:
-        return f'Error {e}'
+        return f"Error {e}"
 
 
 # print(sorted_pd_df(all_transactions_df, '31.12.2020 16:44:00'))
+
+
+def process_card_data(df_not_sorted, date_time_str):
+    try:
+        df = sorted_pd_df(df_not_sorted, date_time_str)
+        required_columns = ["Дата операции", "Номер карты", "Сумма операции"]
+        missing_columns = [col for col in required_columns if col not in df.columns]
+
+        if missing_columns:
+            return {"error": f"Отсутствуют необходимые столбцы в DataFrame: {', '.join(missing_columns)}"}
+
+        cards = []
+        for card_number in df['Номер карты'].unique():
+            card_transactions = df[df['Номер карты'] == card_number]
+            expenses = card_transactions[card_transactions['Сумма операции'].astype(str).str.startswith('-')]['Сумма операции']
+            try:
+                expenses = pd.to_numeric(expenses, errors='coerce')
+                expenses = expenses.dropna()
+                total_spent = abs(expenses.sum())
+
+            except ValueError as e:
+                return {"error": f"Ошибка при преобразовании 'Сумма операции' в число: {str(e)}"}
+
+            last_digits = str(card_number)[-4:]
+            cashback = round(total_spent * 0.01, 2)
+
+            card_info = {
+                "last_digits": last_digits,
+                "total_spent": float(round(total_spent, 2)),
+                "cashback": float(cashback)
+            }
+            cards.append(card_info)
+
+        return cards
+
+    except Exception as e:
+        return {"error": f"Произошла непредвиденная ошибка: {str(e)}"}
+
+
+
+def find_top_transactions(df_not_sorted, date_time_str):
+    try:
+        df = sorted_pd_df(df_not_sorted, date_time_str)
+        required_columns = ["Дата операции", "Сумма операции", "Категория", "Описание"]
+        missing_columns = [col for col in required_columns if col not in df.columns]
+
+        if missing_columns:
+            return {"error": f"Отсутствуют необходимые столбцы в DataFrame: {', '.join(missing_columns)}"}
+
+        expenses_top = df["Сумма операции"].astype(str).str.startswith("-")
+        top_transactions = df[expenses_top].sort_values(by="Сумма операции", ascending=True).head(5)
+        top_transactions = top_transactions.rename(
+            columns={
+                "Дата операции": "date",
+                "Сумма операции": "amount",
+                "Категория": "category",
+                "Описание": "description",
+            }
+        )
+
+        try:
+            top_transactions["amount"] = pd.to_numeric(top_transactions["amount"], errors="coerce")
+            top_transactions = top_transactions.dropna(subset=["amount"])
+            top_transactions["amount"] = abs(top_transactions["amount"]).round(2)
+
+        except ValueError as e:
+            return {"error": f"Ошибка при преобразовании 'Сумма операции' в число для топ транзакций: {str(e)}"}
+
+        top_transactions["date"] = top_transactions["date"].astype(str)
+        top_transactions = top_transactions[["date", "amount", "category", "description"]].to_dict("records")
+
+        return top_transactions
+
+    except Exception as e:
+        return {"error": f"Произошла непредвиденная ошибка: {str(e)}"}
+
+
+# print(process_card_data(all_transactions_df, "31.12.2020 16:44:00"))
+# print(all_transactions_df["Сумма операции"])
