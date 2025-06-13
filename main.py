@@ -15,7 +15,6 @@ def main():
     transactions_as_list_dicts = transactions_as_df.to_dict(orient='records')
 
     # Вызываем главную, отдаём ДАТАФРЕЙМ и дату, дату можно взять от пользователя инпутом
-    print("Главная")
     user_input_page = input('Введите желаемую дату, (Пример ввода: 31.12.2020 16:44:00): ')
     page_result = get_main_page(transactions_as_df, user_input_page)
     print(page_result)

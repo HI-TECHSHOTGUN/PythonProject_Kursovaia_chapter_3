@@ -16,6 +16,9 @@ requests = "^2.32.3"
 websocket = "^0.2.1"
 pytest = "^8.3.4"
 pytest-cov = "^6.0.0"
+pytest-mock = "^3.14.1"
+mock = "^5.2.0"
+requests-mock = "^1.12.1"
 
 
 [build-system]
@@ -44,10 +47,11 @@ exclude = '''
 '''
 
 [tool.pytest.cov]
-source = "src/*.py"
+source = ["src"]  # Укажи список каталогов для покрытия (важно!)
 omit = [
     "tests/*",
-    "docs/*",
     "*__init__.py"
 ]
+include = ["src/views.py"] # Явно укажи файл views.py, который нужно включить
+
 

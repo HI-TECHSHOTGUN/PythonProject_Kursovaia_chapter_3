@@ -85,4 +85,4 @@ def get_main_page(df_not_sorted, date_time_str):
 
 
 # page_result = get_main_page(all_transactions_df, '31.12.2020 16:44:00')
-# print(page_result)
+# print(all_transactions_df)

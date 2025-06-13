@@ -1,5 +1,8 @@
+from unittest import mock
+
 import pytest
 import pandas as pd
+import requests
 
 
 @pytest.fixture
@@ -19,6 +22,48 @@ def mock_settings():
     return {"user_stocks": ["AAPL", "GOOG", "MSFT"]}
 
 
+@pytest.fixture
+def mock_requests_get():
+    """Мокирует requests.get для тестирования."""
+    class MockResponse:
+        def __init__(self, json_data):
+            self.json_data = json_data
+
+        def json(self):
+            return self.json_data
+
+    mocked_response = MockResponse({"price": "199.200000"})
+
+    yield mocked_response
 
 
+@pytest.fixture
+def mock_requests_get_rub():
+    """Мокирует requests.get для тестирования."""
+    def mock_response():
+        return {"rate": "75"}
 
+    yield mock_response
+
+
+@pytest.fixture
+def mock_excel_data():
+    """Создает фиктивные данные Excel в формате строки для мокирования."""
+    excel_string = """
+    Name,Age,City
+    Alice,30,New York
+    Bob,25,London
+    Charlie,40,Paris
+    """
+    return excel_string
+
+
+@pytest.fixture
+def sample_df():
+    """Создает пример DataFrame для тестов."""
+    data = {
+        "Дата операции": ["01.01.2023 10:00:00", "15.01.2023 12:00:00", "01.02.2023 08:00:00", "10.01.2023 14:00:00"],
+        "Номер карты": ["1234567890123456", "1234567890123456", "9876543210987654", "1234567890123456"],
+        "Сумма операции": ["-100", "200", "-300", "-50"]
+    }
+    return pd.DataFrame(data)
