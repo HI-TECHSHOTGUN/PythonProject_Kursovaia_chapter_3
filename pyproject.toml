@@ -42,3 +42,12 @@ exclude = '''
                      # в корне проекта
 )
 '''
+
+[tool.pytest.cov]
+source = "src/*.py"
+omit = [
+    "tests/*",
+    "docs/*",
+    "*__init__.py"
+]
+

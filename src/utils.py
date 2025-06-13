@@ -5,8 +5,8 @@ import os
 import pandas as pd
 import requests
 
-ABS_PATH = os.path.abspath(os.path.join(os.getcwd(), ".."))
-all_transactions_df = pd.read_excel(os.path.join(ABS_PATH, "data", "operations.xlsx"))
+# ABS_PATH = os.path.abspath(os.path.join(os.getcwd(), ".."))
+# all_transactions_df = pd.read_excel(os.path.join(ABS_PATH, "data", "operations.xlsx"))
 API_KEY = "2ba1e8f7be014ddabf64ab8d358d8fae"
 
 
