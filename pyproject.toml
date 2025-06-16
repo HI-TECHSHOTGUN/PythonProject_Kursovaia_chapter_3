@@ -7,8 +7,51 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.11"
+isort = "^6.0.0"
+black = "^25.1.0"
+flake8 = "^7.1.1"
+pandas = "^2.2.3"
+openpyxl = "^3.1.5"
+requests = "^2.32.3"
+websocket = "^0.2.1"
+pytest = "^8.3.4"
+pytest-cov = "^6.0.0"
+pytest-mock = "^3.14.1"
+mock = "^5.2.0"
+requests-mock = "^1.12.1"
 
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+
+[tool.black]
+# Максимальная длина строки
+line-length = 119
+# Файлы, которые не нужно форматировать
+exclude = '''
+(
+  /(
+      \.eggs         # Исключить несколько общих каталогов
+    | \.git          # в корне проекта
+    | \.hg
+    | \.mypy_cache
+    | \.tox
+    | \.venv
+    | dist
+  )/
+  | foo.py           # Также отдельно исключить файл с именем foo.py
+                     # в корне проекта
+)
+'''
+
+[tool.pytest.cov]
+source = ["src"]  # Укажи список каталогов для покрытия (важно!)
+omit = [
+    "tests/*",
+    "*__init__.py"
+]
+include = ["src/views.py"] # Явно укажи файл views.py, который нужно включить
+
+
