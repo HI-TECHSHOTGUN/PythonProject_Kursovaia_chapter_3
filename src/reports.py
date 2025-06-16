@@ -1,6 +1,13 @@
+import os
+from functools import wraps
+
 import pandas as pd
 import datetime
-from functools import wraps
+
+
+ABS_PATH = os.path.abspath(os.path.join(os.getcwd(), '..'))
+all_transactions_df = pd.read_excel(os.path.join(ABS_PATH, 'data', 'operations.xlsx'))
+
 
 def report_decorator(func):
     """Декоратор для функций-отчетов."""
@@ -9,11 +16,11 @@ def report_decorator(func):
         try:
             result = func(*args, **kwargs)
             if isinstance(result, str):
-                return result  # Возвращаем строку ошибки без записи в файл
+                return result
 
             filename = kwargs.get('filename', f"report_{datetime.date.today().strftime('%Y-%m-%d')}.txt")
             with open(filename, "w", encoding="utf-8") as f:
-                f.write(result.to_string())  # Записываем DataFrame в файл как строку
+                f.write(result.to_string())
             print(f"Результат записан в файл: {filename}")
             return result
         except Exception as e:
@@ -22,7 +29,7 @@ def report_decorator(func):
 
 
 @report_decorator
-def spending_by_weekday(df, date=None, filename=None):
+def spending_by_weekday(df, date=None):
     """Функция для поиска трат по дням недели."""
     try:
         days = {0: "Понедельник", 1: "Вторник", 2: "Среда", 3: "Четверг", 4: "Пятница", 5: "Суббота", 6: "Воскресенье"}
@@ -54,4 +61,8 @@ def spending_by_weekday(df, date=None, filename=None):
         return result
     except Exception as e:
         return f"Error: {e}"
+
+
+page_result = spending_by_weekday(all_transactions_df, '31.12.2020')
+print(page_result)
 

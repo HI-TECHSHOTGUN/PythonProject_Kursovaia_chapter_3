@@ -53,7 +53,7 @@ def api_sp_500(setting_dict):
             url_sp = f"https://api.twelvedata.com/price?symbol={i}&apikey={API_KEY}"
             req_1 = requests.get(url_sp)
             data = req_1.json()
-            print(data)
+            # print(data)
             dict_result["stock"], dict_result["price"] = i, data["price"]
             json_result.append(dict_result)
 
