@@ -7,7 +7,7 @@ import pandas as pd
 from src.utils import time_greetings, open_json_user_settings, valet_rub, api_sp_500, sorted_pd_df, process_card_data, \
     find_top_transactions
 
-ABS_PATH = os.path.abspath(os.path.join(os.getcwd(), ".."))
+ABS_PATH = os.path.abspath(os.path.join(os.getcwd()))
 # all_transactions_df = pd.read_excel(os.path.join(ABS_PATH, 'data', 'operations.xlsx'))
 
 # logger = logging.getLogger("views.log")
@@ -64,8 +64,8 @@ def get_main_page(df_not_sorted, date_time_str):
             return top_transactions
 
         settings_dict = open_json_user_settings(os.path.join(ABS_PATH, 'data', 'user_settings.json'))
+        print(settings_dict)
         currency_rates = valet_rub(settings_dict)
-
         stock_prices = api_sp_500(settings_dict)
 
         result = {
@@ -85,4 +85,4 @@ def get_main_page(df_not_sorted, date_time_str):
 
 
 # page_result = get_main_page(all_transactions_df, '31.12.2020 16:44:00')
-# print(all_transactions_df)
+# print(page_result)
